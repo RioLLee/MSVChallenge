@@ -1,5 +1,7 @@
 # Team HelloWorld System Code Guideline
 
+The system is based on speechtrain open-source toolkit
+
 ## 1.Data Preparation
 
 **All of the dev&test data need to resample to 16K.**
