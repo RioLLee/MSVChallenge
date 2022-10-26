@@ -1,6 +1,6 @@
 # Team HelloWorld System Code Guideline
 
-The system is based on speechtrain open-source toolkit
+**The system is based on speechtrain open-source toolkit**
 
 ## 1.Data Preparation
 
