@@ -1,0 +1,99 @@
+# Generated 2022-10-22 from:
+# /mnt/worknfs/yli/code/MSV_submit/speechbrain-develop/recipes/VoxCeleb/SpeakerRec/hparams/verification_MSV.yaml
+# yamllint disable
+# ################################
+# Model: Speaker Verification Baseline
+# Authors: Hwidong Na 2020
+#          Mirco Ravanelli 2020
+# ################################
+
+seed: 1234
+__set_seed: !apply:torch.manual_seed [1234]
+
+# Folders and train_log file
+voxceleb_source: ''
+data_folder: ''
+
+output_folder: results/MSV_22/I_MSV/test/test
+# output_folder: results/MSV_22/I_MSV/private_test/
+
+save_folder: results/MSV_22/I_MSV/test/test/save/
+device: cuda:0
+
+verification_file: [results/MSV_22/I_MSV/test/trials.txt]
+# verification_file: [ results/MSV_22/I_MSV/private_test/trials.txt ]
+
+pretrain_path: '' # !PLACEHOLDER
+
+# csv files
+# enrol_data: results/MSV_22/I_MSV/test/csv_files/enrol_shuf.csv
+enrol_data: results/MSV_22/I_MSV/1986/csv_files/all.csv
+test_data: results/MSV_22/I_MSV/test/csv_files/test_spkid.csv
+# enrol_data: results/MSV_22/I_MSV/private_test/csv_files/enrol_shuf.csv
+# test_data: results/MSV_22/I_MSV/private_test/csv_files/test.csv
+
+batch_size: 8 #8
+
+# Feature parameters
+n_mels: 80
+left_frames: 0
+right_frames: 0
+deltas: false
+
+# Dataloader options
+train_dataloader_opts:
+  batch_size: 8
+
+enrol_dataloader_opts:
+  batch_size: 8
+
+test_dataloader_opts:
+  batch_size: 8
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+  n_mels: 80
+
+mean_var_norm: !new:speechbrain.processing.features.InputNormalization
+  norm_type: sentence
+  std_norm: false
+
+embedding_model: &id001 !new:speechbrain.lobes.models.ECAPA_TDNN.ECAPA_TDNN
+  input_size: 80
+  channels: [1024, 1024, 1024, 1024, 3072]
+    # channels: [2048, 2048, 2048, 2048, 6144]
+  kernel_sizes: [5, 3, 3, 3, 1]
+  dilations: [1, 2, 3, 4, 1]
+    # groups: [1, 1, 1, 1, 1]
+  attention_channels: 128
+    # attention_channels: 256
+  lin_neurons: 192
+    # lin_neurons: 256
+
+# embedding_model: !new:speechbrain.lobes.models.ResNet34Coordinate.ResNetESE
+#     layers: [3,4,6,3]
+#     num_filters: [32, 64, 128, 256]
+#     encoder_type: "ASP"
+#     attention_channels: 128
+#     lin_neurons: 512
+
+# embedding_model: !new:speechbrain.lobes.models.ThinResNet34SE.ResNetSE
+#     layers: [3, 4, 6, 3]
+#     # num_filters: [32, 64, 128, 256]
+#     num_filters: [64, 128, 256, 512]
+#     encoder_type: ASP
+#     n_mels: 80
+#     # attention_channels: 128
+#     attention_channels: 256
+#     # lin_neurons: 256
+#     lin_neurons: 512
+
+mean_var_norm_emb: !new:speechbrain.processing.features.InputNormalization
+  norm_type: global
+  std_norm: false
+
+pretrainer: !new:speechbrain.utils.parameter_transfer.Pretrainer
+  collect_in: results/MSV_22/I_MSV/test/test/save/
+  loadables:
+    embedding_model: *id001
+  paths:
+    embedding_model: /embedding_model.ckpt

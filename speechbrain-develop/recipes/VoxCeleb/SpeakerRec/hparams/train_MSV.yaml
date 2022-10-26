@@ -1,0 +1,216 @@
+# ################################
+# Model: Speaker identification with ECAPA
+# Authors: Hwidong Na & Mirco Ravanelli
+# ################################
+
+# Basic parameters
+
+device: 'cuda:0'
+
+seed: 1986
+__set_seed: !apply:torch.manual_seed [!ref <seed>]
+output_folder: !ref results/MSV_22/I_MSV/<seed>/test
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# Data files
+data_folder: ""  #!PLACEHOLDER  # e.g. /path/to/Voxceleb
+noise_folder: /mnt/worknfs/voxceleb/data/noise/1
+
+train_annotation: !ref results/MSV_22/I_MSV/<seed>/csv_files/all.csv
+valid_annotation: !ref results/MSV_22/I_MSV/<seed>/csv_files/dev.csv
+
+# Folder to extract data augmentation files
+rir_folder: !ref <noise_folder> # Change it if needed
+# verification_file: https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt
+
+label_encoder: !ref results/MSV_22/I_MSV/<seed>/label_encoder.txt
+
+skip_prep: False
+ckpt_interval_minutes: 15 # save checkpoint every N min
+
+# Training parameters
+number_of_epochs: 10
+batch_size: 36
+lr: 0.001
+base_lr: 0.00000001
+max_lr: !ref <lr>
+step_size: 7000  # change
+sample_rate: 16000
+sentence_len: 3.0 # seconds
+shuffle: True
+random_chunk: False
+
+domain_loss_rate: 1
+
+# Feature parameters
+n_mels: 80
+left_frames: 0
+right_frames: 0
+deltas: False
+
+# Number of speakers
+out_n_neurons: 50
+
+dataloader_options:
+    batch_size: !ref <batch_size>
+    shuffle: !ref <shuffle>
+    num_workers: 2
+
+# Functions
+compute_features: !new:speechbrain.lobes.features.Fbank
+    n_mels: !ref <n_mels>
+    left_frames: !ref <left_frames>
+    right_frames: !ref <right_frames>
+    deltas: !ref <deltas>
+
+# embedding_model: !new:speechbrain.lobes.models.ECAPA_TDNN.ECAPA_TDNN
+#     input_size: !ref <n_mels>
+#     # channels: [1024, 1024, 1024, 1024, 3072]
+#     channels: [2048, 2048, 2048, 2048, 6144]
+#     kernel_sizes: [5, 3, 3, 3, 1]
+#     dilations: [1, 2, 3, 4, 1]
+#     # groups: [1, 1, 1, 1, 1]
+#     # attention_channels: 128
+#     attention_channels: 256
+#     # lin_neurons: 192
+#     lin_neurons: 256
+
+# ResNet_DTCF
+embedding_model: !new:speechbrain.lobes.models.ResNet34Coordinate.ResNetESE
+    layers: [3,4,6,3]
+    num_filters: [32, 64, 128, 256]
+    encoder_type: "ASP"
+    attention_channels: 128
+    lin_neurons: 512
+
+# ResNet
+# embedding_model: !new:speechbrain.lobes.models.ThinResNet34SE.ResNetSE
+#     layers: [3, 4, 6, 3]
+#     num_filters: [32, 64, 128, 256]
+#     # num_filters: [64, 128, 256, 512]
+#     encoder_type: ASP
+#     n_mels: 80
+#     attention_channels: 128
+#     # attention_channels: 256
+#     lin_neurons: 256
+#     # lin_neurons: 512
+
+classifier: !new:speechbrain.lobes.models.ECAPA_TDNN.Classifier
+    # input_size: 192
+    input_size: 512
+    out_neurons: !ref <out_n_neurons>
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+
+augment_spec: !new:speechbrain.lobes.augment.SpecAugment
+
+augment_wavedrop: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
+    sample_rate: !ref <sample_rate>
+    speeds: [1.00]
+
+augment_speed: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
+    sample_rate: !ref <sample_rate>
+    speeds: [0.95, 1.00, 1.05]
+
+add_rev: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    openrir_max_noise_len: 3.0  # seconds
+    reverb_prob: 1.0
+    noise_prob: 0.0
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+    reverb_csv: /mnt/worknfs/voxceleb/data/noise/1/reverb.csv
+    noise_csv: /mnt/worknfs/voxceleb/data/noise/1/noise.csv
+
+add_noise: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    openrir_max_noise_len: 3.0  # seconds
+    reverb_prob: 0.0
+    noise_prob: 1.0
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+    reverb_csv: /mnt/worknfs/voxceleb/data/noise/1/reverb.csv
+    noise_csv: /mnt/worknfs/voxceleb/data/noise/1/noise.csv
+
+add_rev_noise: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    openrir_max_noise_len: 3.0  # seconds
+    reverb_prob: 1.0
+    noise_prob: 1.0
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+    reverb_csv: /mnt/worknfs/voxceleb/data/noise/1/reverb.csv
+    noise_csv: /mnt/worknfs/voxceleb/data/noise/1/noise.csv
+
+# Definition of the augmentation pipeline.
+# If concat_augment = False, the augmentation techniques are applied
+# in sequence. If concat_augment = True, all the augmented signals
+# # are concatenated in a single big batch.
+
+augment_pipeline: [
+    !ref <augment_wavedrop>,
+    !ref <augment_speed>,
+    !ref <add_rev>,
+    !ref <add_noise>,
+    !ref <add_rev_noise>
+]
+concat_augment: True
+
+mean_var_norm: !new:speechbrain.processing.features.InputNormalization
+    norm_type: sentence
+    std_norm: False
+
+modules:
+    compute_features: !ref <compute_features>
+    augment_wavedrop: !ref <augment_wavedrop>
+    augment_speed: !ref <augment_speed>
+    add_rev: !ref <add_rev>
+    add_noise: !ref <add_noise>
+    add_rev_noise: !ref <add_rev_noise>
+    # teacher_model: !ref <teacher_model>
+    embedding_model: !ref <embedding_model>
+    classifier: !ref <classifier>
+    mean_var_norm: !ref <mean_var_norm>
+    specAugment: !ref <augment_spec>
+
+compute_cost: !new:speechbrain.nnet.losses.LogSoftmaxWrapper
+    loss_fn: !new:speechbrain.nnet.losses.AdditiveAngularMargin
+        margin: 0.1
+        # margin: 0.25
+        scale: 15
+        # margin: 0.1
+        # scale: 10
+
+compute_error: !name:speechbrain.nnet.losses.classification_error
+
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+    weight_decay: 0.0002
+
+lr_annealing: !new:speechbrain.nnet.schedulers.CyclicLRScheduler
+    base_lr: !ref <base_lr>
+    max_lr: !ref <max_lr>
+    step_size: !ref <step_size>
+
+# Logging + checkpoints
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+error_stats: !name:speechbrain.utils.metric_stats.MetricStats
+    metric: !name:speechbrain.nnet.losses.classification_error
+        reduction: batch
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>/
+    allow_partial_load: True
+    recoverables:
+        embedding_model: !ref <embedding_model>
+        classifier: !ref <classifier>
+        normalizer: !ref <mean_var_norm>
+        counter: !ref <epoch_counter>
