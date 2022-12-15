@@ -12,6 +12,8 @@ You should modify dev&test data paths in csv files, including:
 - speechbrain-develop/recipes/VoxCeleb/SpeakerRec/results/MSV_22/I_MSV/test/csv_files/*.csv
 - speechbrain-develop/recipes/VoxCeleb/SpeakerRec/results/MSV_22/I_MSV/private_test/csv_files/*.csv
 
+All noise and reverb wavs are from paper "*A Study on Data Augmentation of Reverberant Speech for Robust Speech Recognition*"
+
 ## 2. Training Process
 
 You can run the following script to train the model, and you can modify the hyperparameters in the `hparams/train_MSV.yaml` and `hparams/train_MSV_weight_regular.yaml`.
