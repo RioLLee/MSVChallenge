@@ -123,8 +123,8 @@ add_rev: !new:speechbrain.lobes.augment.EnvCorrupt
     noise_snr_low: 0
     noise_snr_high: 15
     rir_scale_factor: 1.0
-    reverb_csv: /mnt/worknfs/voxceleb/data/noise/1/reverb.csv
-    noise_csv: /mnt/worknfs/voxceleb/data/noise/1/noise.csv
+    reverb_csv: hparams/reverb.csv
+    noise_csv: hparams/noise.csv
 
 add_noise: !new:speechbrain.lobes.augment.EnvCorrupt
     openrir_folder: !ref <rir_folder>
@@ -134,8 +134,8 @@ add_noise: !new:speechbrain.lobes.augment.EnvCorrupt
     noise_snr_low: 0
     noise_snr_high: 15
     rir_scale_factor: 1.0
-    reverb_csv: /mnt/worknfs/voxceleb/data/noise/1/reverb.csv
-    noise_csv: /mnt/worknfs/voxceleb/data/noise/1/noise.csv
+    reverb_csv: hparams/reverb.csv
+    noise_csv: hparams/noise.csv
 
 add_rev_noise: !new:speechbrain.lobes.augment.EnvCorrupt
     openrir_folder: !ref <rir_folder>
@@ -145,8 +145,8 @@ add_rev_noise: !new:speechbrain.lobes.augment.EnvCorrupt
     noise_snr_low: 0
     noise_snr_high: 15
     rir_scale_factor: 1.0
-    reverb_csv: /mnt/worknfs/voxceleb/data/noise/1/reverb.csv
-    noise_csv: /mnt/worknfs/voxceleb/data/noise/1/noise.csv
+    reverb_csv: hparams/reverb.csv
+    noise_csv: hparams/noise.csv
 
 # Definition of the augmentation pipeline.
 # If concat_augment = False, the augmentation techniques are applied
